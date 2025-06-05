@@ -1,0 +1,28 @@
+WITH revenua_data as (
+SELECT continent,
+sum (p.price) as revenue,
+sum (p.price) / sum (sum (p.price)) over () as revenue_from_total,
+sum (case when device = 'mobile' then p.price end) as revenue_from_mobile,
+sum (case when device = 'desktop' then p.price end) as revenue_from_desktop,
+FROM data-analytics-mate.DA.order o
+join data-analytics-mate.DA.product p
+on o.item_id = p.item_id
+join data-analytics-mate.DA.session_params sp
+on o.ga_session_id = sp.ga_session_id
+group by continent ) ,
+account_data as (
+SELECT continent, count (acs.account_id) as account_cnt,
+count (case when is_verified = 1 then 'is_verified' end) as verified_cnt,
+count (sp.ga_session_id) as session_cnt
+FROM data-analytics-mate.DA.session_params sp
+LEFT JOIN data-analytics-mate.DA.account_session acs
+on sp.ga_session_id = acs.ga_session_id
+LEFT join  data-analytics-mate.DA.account a
+on acs.account_id=a.id
+group by continent)
+
+
+SELECT revenua_data.continent, revenue, revenue_from_total,revenue_from_mobile, revenue_from_desktop,account_cnt,verified_cnt,session_cnt
+FROM revenua_data
+JOIN account_data
+ON revenua_data.continent = account_data.continent
